@@ -50,6 +50,34 @@ Choose QEMU only if you specifically need a separate guest kernel or want to exp
 
 **In short:** proot is the practical choice for Debian + a light desktop; QEMU is not a performance upgrade for this use case.
 
+### QEMU setup scripts
+
+The scripts in `scripts/` install QEMU in Termux, create a dynamically allocated Debian ARM64 disk, and launch the installer or installed guest. They use QEMU's software emulator (TCG), not KVM; expect a slower and more battery-intensive desktop than proot. The VM defaults to 4 GB RAM and four virtual CPUs; lower `VM_MEMORY_MB` or `VM_CPUS` if Android becomes unstable.
+
+Run these commands in Termux:
+
+```sh
+bash scripts/setup-termux-qemu.sh
+bash scripts/create-debian-vm.sh
+bash scripts/run-debian-vm.sh install
+```
+
+Connect a VNC client on the tablet to `127.0.0.1:5901` to use QEMU's VM console and install Debian. Create a user named `tablet` (or update the examples below for your chosen username), and select the SSH server during installation. Once installation finishes and the VM reboots, close it and start the disk without the installer:
+
+```sh
+bash scripts/run-debian-vm.sh boot
+```
+
+The QEMU VNC console is available only on the tablet's loopback interface and has no password; do not change its bind address to expose it to a network. SSH is forwarded to `127.0.0.1:2222`. To install containerd, checksum-verified `nerdctl`, XFCE, and a password-protected TigerVNC desktop inside Debian, copy and run the guest provisioner:
+
+```sh
+pkg install openssh
+scp -P 2222 scripts/configure-debian-guest.sh tablet@127.0.0.1:/tmp/
+ssh -t -p 2222 tablet@127.0.0.1
+```
+
+In the SSH session, become root with `su -` (set a root password during Debian installation) or use `sudo -i` if sudo is configured, then run `bash /tmp/configure-debian-guest.sh tablet`. Choose a VNC password when prompted. The TigerVNC desktop is forwarded to `127.0.0.1:5902`; use the password you set. QEMU's console on port 5901 remains useful for boot and troubleshooting. The VM's container support depends on its guest kernel and available memory; TCG can make container workloads very slow. The VM scripts retain existing disk images and do not delete or resize them.
+
 ## `nerdctl` / Docker containers
 
 `nerdctl` is a command-line client for **containerd**, not a standalone Docker engine. It needs a functioning containerd service and Linux kernel container features. A proot Debian environment shares Android's kernel and cannot provide missing kernel capabilities, namespaces, or cgroup support; installing `nerdctl` alone will not make Docker-style containers work. Rootless mode also depends on host-kernel and user-namespace configuration that may not be available on a stock Android device.
