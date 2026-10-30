@@ -26,14 +26,23 @@ In another Termux session, log in to Debian with shared temporary storage:
 proot-distro login debian --shared-tmp
 ```
 
-In Debian, install a desktop. XFCE is the lighter, simpler starting point; `plasma-desktop` is a smaller KDE Plasma installation than the full KDE desktop set, but will use more memory and may need troubleshooting in proot:
+In Debian, install the smaller KDE Plasma package set and create a regular user for the desktop session:
 
 ```sh
 apt update
-apt install dbus-x11 xfce4
+apt install dbus-x11 plasma-desktop
+adduser tablet
 ```
 
-For KDE Plasma, install `dbus-x11` and `plasma-desktop` instead of `xfce4`. Set `DISPLAY=:0` in the Debian session and start the chosen desktop (`dbus-launch --exit-with-session startxfce4` for XFCE, or `dbus-launch --exit-with-session startplasma-x11` for Plasma). Avoid starting a desktop session as root; create and use a regular Debian user if needed. Proot does not provide systemd or a separate kernel, so services and desktop features that depend on them may not work normally.
+Back in Termux, log in as that user, then start Plasma:
+
+```sh
+proot-distro login debian --shared-tmp --user tablet
+export DISPLAY=:0
+dbus-launch --exit-with-session startplasma-x11
+```
+
+`plasma-desktop` uses less space than the full KDE desktop set, but KDE will still use more memory than a lightweight desktop such as XFCE. To use XFCE instead, install `dbus-x11 xfce4` instead of `dbus-x11 plasma-desktop`, then launch it with `dbus-launch --exit-with-session startxfce4`. Proot does not provide systemd or a separate kernel, so services and desktop features that depend on them may not work normally.
 
 ## When to use QEMU
 
