@@ -54,15 +54,16 @@ tar -xzf "$TMP_DIR/$ASSET" -C /usr/local/bin nerdctl
 chmod 0755 /usr/local/bin/nerdctl
 
 USER_HOME="$(getent passwd "$VM_USER" | cut -d: -f6)"
+USER_GROUP="$(id -gn "$VM_USER")"
 VNC_DIR="$USER_HOME/.vnc"
-install -d -m 0700 -o "$VM_USER" -g "$VM_USER" "$VNC_DIR"
+install -d -m 0700 -o "$VM_USER" -g "$USER_GROUP" "$VNC_DIR"
 cat > "$VNC_DIR/xstartup" <<'EOF'
 #!/bin/sh
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
 exec dbus-launch --exit-with-session startxfce4
 EOF
-chown "$VM_USER:$VM_USER" "$VNC_DIR/xstartup"
+chown "$VM_USER:$USER_GROUP" "$VNC_DIR/xstartup"
 chmod 0755 "$VNC_DIR/xstartup"
 
 printf '\nEnter a VNC password for %s when prompted.\n' "$VM_USER"
