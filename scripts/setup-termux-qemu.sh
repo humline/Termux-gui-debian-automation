@@ -12,7 +12,7 @@ if [ "$(uname -m)" != "aarch64" ]; then
 fi
 
 pkg update
-pkg install -y qemu-system-aarch64 qemu-utils curl
+pkg install -y qemu-system-aarch64-headless qemu-utils curl
 
 printf '\nQEMU installed. Next run: %s/scripts/create-debian-vm.sh\n' \
     "$(cd "$(dirname "$0")/.." && pwd)"
