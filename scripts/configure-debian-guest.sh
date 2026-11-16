@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+export LC_ALL=C
 
 NERDCTL_VERSION="${NERDCTL_VERSION:-2.4.1}"
 VM_USER="${1:-tablet}"
@@ -19,6 +20,26 @@ case "$VM_USER" in
 esac
 [ "$VM_USER" != root ] || die "Do not run the VNC desktop as root."
 getent passwd "$VM_USER" >/dev/null || die "Debian user '$VM_USER' does not exist."
+
+if [ -n "${VNC_PASSWORD_B64:-}" ]; then
+    VNC_PASSWORD="$(printf '%s' "$VNC_PASSWORD_B64" | base64 --decode)" ||
+        die "Could not decode the VNC password."
+    [ "${#VNC_PASSWORD}" -eq 8 ] || die "The VNC password must contain exactly 8 characters."
+else
+    printf 'Enter an 8-character VNC password for %s.\n' "$VM_USER"
+    while :; do
+        read -r -s -p "VNC password: " VNC_PASSWORD
+        printf '\n'
+        [ "${#VNC_PASSWORD}" -eq 8 ] || {
+            printf '%s\n' "The VNC password must contain exactly 8 characters." >&2
+            continue
+        }
+        read -r -s -p "Confirm VNC password: " VNC_PASSWORD_CONFIRM
+        printf '\n'
+        [ "$VNC_PASSWORD" = "$VNC_PASSWORD_CONFIRM" ] && break
+        printf '%s\n' "Passwords did not match; try again." >&2
+    done
+fi
 
 ARCH="$(dpkg --print-architecture)"
 case "$ARCH" in
@@ -66,11 +87,33 @@ EOF
 chown "$VM_USER:$USER_GROUP" "$VNC_DIR/xstartup"
 chmod 0755 "$VNC_DIR/xstartup"
 
-printf '\nEnter a VNC password for %s when prompted.\n' "$VM_USER"
-runuser -u "$VM_USER" -- vncpasswd
-runuser -u "$VM_USER" -- tigervncserver :1 -localhost no \
-    -geometry 1280x800 -SecurityTypes VncAuth
+printf '%s\n' "$VNC_PASSWORD" | runuser -u "$VM_USER" -- vncpasswd -f > "$VNC_DIR/passwd"
+chown "$VM_USER:$USER_GROUP" "$VNC_DIR/passwd"
+chmod 0600 "$VNC_DIR/passwd"
+unset VNC_PASSWORD VNC_PASSWORD_B64 VNC_PASSWORD_CONFIRM
+
+cat > /etc/systemd/system/tigervncserver.service <<EOF
+[Unit]
+Description=TigerVNC desktop for $VM_USER
+After=network.target
+
+[Service]
+Type=forking
+User=$VM_USER
+WorkingDirectory=$USER_HOME
+ExecStart=/usr/bin/tigervncserver :1 -localhost no -geometry 1280x800 -SecurityTypes VncAuth -rfbauth $VNC_DIR/passwd -xstartup $VNC_DIR/xstartup
+ExecStop=/usr/bin/tigervncserver -kill :1
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable --now tigervncserver.service
+if [ -f /etc/systemd/system/debian-vm-setup.service ]; then
+    systemctl disable debian-vm-setup.service
+    rm -f /root/.debian-vm-setup.env
+fi
 
 printf '\ncontainerd and nerdctl %s are installed.\n' "$NERDCTL_VERSION"
 printf '%s\n' "Start a test container with: nerdctl run --rm docker.io/library/alpine:latest echo ready"
-printf '%s\n' "TigerVNC is running on guest port 5901; connect from Termux to 127.0.0.1:5902."
+printf '%s\n' "TigerVNC starts automatically on guest port 5901; connect from Termux to 127.0.0.1:5902."
