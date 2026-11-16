@@ -220,6 +220,7 @@ EOF
             cpio --create --format=newc --quiet > preseed.cpio
     )
     xorriso -osirrox on -indev "$ISO" -extract /initrd.gz "$INSTALL_TMP/initrd.gz"
+    chmod 0600 "$INSTALL_TMP/initrd.gz"
     gzip -c "$INSTALL_TMP/preseed.cpio" >> "$INSTALL_TMP/initrd.gz"
     cat > "$INSTALL_TMP/grub.cfg" <<'EOF'
 set timeout=0
