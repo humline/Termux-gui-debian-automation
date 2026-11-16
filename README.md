@@ -62,6 +62,14 @@ bash scripts/create-debian-vm.sh
 bash scripts/run-debian-vm.sh install
 ```
 
+The setup script installs `qemu-system-aarch64-headless` from Termux's main
+repository; it includes VNC support and provides the `qemu-system-aarch64`
+command. If the package cannot be found, run `termux-change-repo`, select a
+current main repository mirror, and retry the setup script. If your Termux
+installation is too old to update, back up your files before switching to a
+current [official build](https://github.com/termux/termux-app#installation);
+uninstalling Termux removes its app data.
+
 Connect a VNC client on the tablet to `127.0.0.1:5901` to use QEMU's VM console and install Debian. Create a user named `tablet` (or update the examples below for your chosen username), and select the SSH server during installation. Once installation finishes and the VM reboots, close it and start the disk without the installer:
 
 ```sh
