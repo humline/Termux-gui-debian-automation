@@ -28,4 +28,4 @@ else
 fi
 
 printf '\nVM files are in %s\n' "$VM_DIR"
-printf 'Install Debian: scripts/run-debian-vm.sh install\n'
+printf 'Install and configure Debian automatically: scripts/run-debian-vm.sh install\n'

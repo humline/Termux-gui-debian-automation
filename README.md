@@ -52,7 +52,7 @@ Choose QEMU only if you specifically need a separate guest kernel or want to exp
 
 ### QEMU setup scripts
 
-The scripts in `scripts/` install QEMU in Termux, create a dynamically allocated Debian ARM64 disk, and launch the installer or installed guest. They use QEMU's software emulator (TCG), not KVM; expect a slower and more battery-intensive desktop than proot. The VM defaults to 4 GB RAM and four virtual CPUs; lower `VM_MEMORY_MB` or `VM_CPUS` if Android becomes unstable.
+The scripts in `scripts/` install QEMU in Termux, create a dynamically allocated Debian ARM64 disk, and launch the unattended installer or installed guest. They use QEMU's software emulator (TCG), not KVM; expect a slower and more battery-intensive desktop than proot. The VM defaults to 4 GB RAM and four virtual CPUs; lower `VM_MEMORY_MB` or `VM_CPUS` if Android becomes unstable.
 
 Run these commands in Termux:
 
@@ -62,7 +62,8 @@ bash scripts/create-debian-vm.sh
 bash scripts/run-debian-vm.sh install
 ```
 
-The setup script installs `qemu-system-aarch64-headless` from Termux's main
+The setup script installs QEMU and the small tools needed to prepare the
+unattended installer. It installs `qemu-system-aarch64-headless` from Termux's main
 repository; it includes VNC support and provides the `qemu-system-aarch64`
 command. If the package cannot be found, run `termux-change-repo`, select a
 current main repository mirror, and retry the setup script. If your Termux
@@ -70,21 +71,37 @@ installation is too old to update, back up your files before switching to a
 current [official build](https://github.com/termux/termux-app#installation);
 uninstalling Termux removes its app data.
 
-Connect a VNC client on the tablet to `127.0.0.1:5901` to use QEMU's VM console and install Debian. Create a user named `tablet` (or update the examples below for your chosen username), and select the SSH server during installation. Once installation finishes and the VM reboots, close it and start the disk without the installer:
+Run the install command in a terminal. It asks you to confirm that the VM disk
+will be erased, then securely prompts for the Debian account password and an
+8-byte VNC password. Debian, SSH, containerd, nerdctl, XFCE, and the
+password-protected TigerVNC desktop are installed automatically; QEMU then
+restarts from the installed disk. No VNC client or Debian installer input is
+needed. The default Debian username is `tablet`; set `VM_USER` before running
+the command to choose another username. The VM's serial console is available
+while it boots:
+
+```sh
+bash scripts/run-debian-vm.sh install
+```
+
+SSH is forwarded to `127.0.0.1:2222`, and the TigerVNC desktop is forwarded
+to `127.0.0.1:5902`. After setup finishes, connect a VNC client to port 5902
+using the password entered during installation. SSH can be used with the
+Debian username and password. The first-boot setup runs after SSH becomes
+available; check its progress with `sudo systemctl status debian-vm-setup`
+or `sudo journalctl -u debian-vm-setup -b`. If it fails, check the journal
+before retrying with `sudo systemctl restart debian-vm-setup`. To boot the
+installed VM again later:
 
 ```sh
 bash scripts/run-debian-vm.sh boot
 ```
 
-The QEMU VNC console is available only on the tablet's loopback interface and has no password; do not change its bind address to expose it to a network. SSH is forwarded to `127.0.0.1:2222`. To install containerd, checksum-verified `nerdctl`, XFCE, and a password-protected TigerVNC desktop inside Debian, copy and run the guest provisioner:
-
-```sh
-pkg install openssh
-scp -P 2222 scripts/configure-debian-guest.sh tablet@127.0.0.1:/tmp/
-ssh -t -p 2222 tablet@127.0.0.1
-```
-
-In the SSH session, become root with `su -` (set a root password during Debian installation) or use `sudo -i` if sudo is configured, then run `bash /tmp/configure-debian-guest.sh tablet`. Choose a VNC password when prompted. The TigerVNC desktop is forwarded to `127.0.0.1:5902`; use the password you set. QEMU's console on port 5901 remains useful for boot and troubleshooting. The VM's container support depends on its guest kernel and available memory; TCG can make container workloads very slow. The VM scripts retain existing disk images and do not delete or resize them.
+The installer repartitions the VM disk, so back up any data in it before
+running `install`. The VNC password is temporarily stored in a root-only file
+in the VM until first-boot setup succeeds. The VM's container support depends on its guest kernel and
+available memory; TCG can make container workloads very slow. The VM scripts
+retain existing disk images and do not resize them.
 
 ## `nerdctl` / Docker containers
 
