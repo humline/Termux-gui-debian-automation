@@ -237,8 +237,11 @@ EOF
         -drive "if=none,file=$INSTALL_TMP/install.iso,media=cdrom,readonly=on,id=installer"
         -device "virtio-scsi-device,id=scsi0"
         -device "scsi-cd,drive=installer,bootindex=1"
+        -boot order=d,menu=off
         -no-reboot
     )
+else
+    QEMU_ARGS+=(-boot order=c,menu=off)
 fi
 
 printf '%s\n' "Guest SSH forwarding: 127.0.0.1:2222 -> guest:22"

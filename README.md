@@ -75,10 +75,10 @@ Run the install command in a terminal. It asks you to confirm that the VM disk
 will be erased, then securely prompts for the Debian account password and an
 8-byte VNC password. Debian, SSH, containerd, nerdctl, XFCE, and the
 password-protected TigerVNC desktop are installed automatically; QEMU then
-restarts from the installed disk. No VNC client or Debian installer input is
-needed. The default Debian username is `tablet`; set `VM_USER` before running
-the command to choose another username. The VM's serial console is available
-while it boots:
+restarts from the installed disk. No VNC client, UEFI menu, or Debian installer
+input is needed. The default Debian username is `tablet`; set `VM_USER` before
+running the command to choose another username. The VM's serial console is
+available while it boots:
 
 ```sh
 bash scripts/run-debian-vm.sh install
@@ -99,9 +99,11 @@ bash scripts/run-debian-vm.sh boot
 
 The installer repartitions the VM disk, so back up any data in it before
 running `install`. The VNC password is temporarily stored in a root-only file
-in the VM until first-boot setup succeeds. The VM's container support depends on its guest kernel and
-available memory; TCG can make container workloads very slow. The VM scripts
-retain existing disk images and do not resize them.
+in the VM until first-boot setup succeeds. The VM's container support depends
+on its guest kernel and available memory; TCG can make container workloads
+very slow. The VM scripts retain existing disk images and do not resize them.
+Use `install` the first time; `boot` only starts a Debian system already
+installed on the VM disk.
 
 ## `nerdctl` / Docker containers
 
